@@ -234,91 +234,147 @@ export const MOCK_SOURCES = [
   "SPD_Medical_2024.pdf",
 ];
 
-// Wizard steps configuration
-export type WizardStepId =
-  | "welcome"
-  | "current-plans"
-  | "financial"
-  | "renewal"
-  | "census"
-  | "review";
+// Wizard steps - just 2 interactive steps
+export type WizardStepId = "upload-documents" | "set-context";
 
-export interface WizardStepConfig {
-  id: WizardStepId;
+// Audience options (single select)
+export type AudienceType =
+  | "c-suite"
+  | "hr-leadership"
+  | "finance-team"
+  | "benefits-committee";
+
+export const AUDIENCE_OPTIONS: {
+  id: AudienceType;
   label: string;
-  stepNumber: number;
-  isOptional?: boolean;
-}
-
-export const WIZARD_STEPS: WizardStepConfig[] = [
-  { id: "welcome", label: "Get Started", stepNumber: 1 },
-  { id: "current-plans", label: "Current Plans", stepNumber: 2 },
-  { id: "financial", label: "Financial Data", stepNumber: 3 },
-  { id: "renewal", label: "Renewal Package", stepNumber: 4, isOptional: true },
-  { id: "census", label: "Census Data", stepNumber: 5 },
-  { id: "review", label: "Review", stepNumber: 6 },
+  description: string;
+}[] = [
+  { id: "c-suite", label: "C-Suite Executives", description: "CEO, CFO, COO" },
+  {
+    id: "hr-leadership",
+    label: "HR Leadership",
+    description: "CHRO, Benefits Manager",
+  },
+  {
+    id: "finance-team",
+    label: "Finance Team",
+    description: "Financial analysis focus",
+  },
+  {
+    id: "benefits-committee",
+    label: "Benefits Committee",
+    description: "Cross-functional group",
+  },
 ];
 
-// Step content configuration
-export const STEP_CONTENT: Record<
-  WizardStepId,
+// Priority options (multi-select, max 3)
+export type PriorityType =
+  | "cost-management"
+  | "coverage-quality"
+  | "employee-experience"
+  | "talent-competitiveness"
+  | "cost-predictability"
+  | "data-transparency";
+
+export const PRIORITY_OPTIONS: {
+  id: PriorityType;
+  label: string;
+  description: string;
+}[] = [
   {
-    title: string;
-    description: string;
-    hint?: { title: string; items: string[] };
-    recommendation?: { type: string; description: string };
-  }
-> = {
-  welcome: {
-    title: "Let's Create Your Canvas",
-    description:
-      "We'll guide you through a few simple steps to build a professional benefits presentation.",
+    id: "cost-management",
+    label: "Cost Management",
+    description: "Minimize premium increases",
   },
-  "current-plans": {
-    title: "Current Plan Documents",
-    description:
-      "Upload SPDs, benefit summaries, or comparison grids for current coverage",
-    hint: {
-      title: "TIP: Include all plan types",
-      items: ["Medical", "Dental", "Vision", "Life", "Disability"],
-    },
+  {
+    id: "coverage-quality",
+    label: "Coverage Quality",
+    description: "Maintain rich benefits",
   },
-  financial: {
-    title: "Financial Data",
-    description:
-      "Upload claims experience, premium rates, and stop-loss information",
-    hint: {
-      title: "TIP",
-      items: ["12-24 months of data provides the most accurate trend analysis"],
-    },
-    recommendation: {
-      type: "Large Claimant Report",
-      description: "Upload for more accurate trend analysis",
-    },
+  {
+    id: "employee-experience",
+    label: "Employee Experience",
+    description: "Member satisfaction",
   },
-  renewal: {
-    title: "Renewal Package",
-    description:
-      "Upload the carrier's renewal proposal, rate justification, or plan options",
-    hint: {
-      title: "TIP",
-      items: [
-        "Don't have the renewal yet? Skip this step and we'll create a pre-renewal analysis instead.",
-      ],
-    },
+  {
+    id: "talent-competitiveness",
+    label: "Talent Competitiveness",
+    description: "Market positioning",
   },
-  census: {
-    title: "Census Data",
-    description:
-      "Upload employee census with enrollment information and demographics",
-    hint: {
-      title: "TIP: Best census files include",
-      items: ["Age", "Gender", "Coverage tier", "Salary", "Plan elections"],
-    },
+  {
+    id: "cost-predictability",
+    label: "Cost Predictability",
+    description: "Stable multi-year costs",
   },
-  review: {
-    title: "Review Your Canvas",
-    description:
-      "Confirm everything looks correct before we generate your presentation",
+  {
+    id: "data-transparency",
+    label: "Data Transparency",
+    description: "Better insights and control",
   },
-};
+];
+
+// Relevance sections for document tags
+export const RELEVANCE_SECTIONS = [
+  { id: "claims-analysis", label: "Claims Analysis Full" },
+  { id: "plan-design", label: "Plan Design Full" },
+  { id: "market-context", label: "Market Context Full" },
+];
+
+// Uploaded document type for new flow
+export interface UploadedDocument {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  detectedType: string;
+  relevantSections: string[];
+}
+
+// Context state for Set Context step
+export interface ContextState {
+  clientName: string;
+  renewalPeriod: string;
+  audience: AudienceType | null;
+  priorities: PriorityType[];
+  presentationDepth: number;
+}
+
+// Mock uploaded documents for simulation
+export const MOCK_UPLOADED_DOCUMENTS: UploadedDocument[] = [
+  {
+    id: "doc-1",
+    name: "Final Premio Salaried Guide.pdf",
+    type: "application/pdf",
+    size: 1_250_000,
+    detectedType: "Unknown Document",
+    relevantSections: [
+      "Claims Analysis Full",
+      "Plan Design Full",
+      "Market Context Full",
+    ],
+  },
+  {
+    id: "doc-2",
+    name: "Final Premio Hourly Guide.pdf",
+    type: "application/pdf",
+    size: 980_000,
+    detectedType: "Unknown Document",
+    relevantSections: [
+      "Claims Analysis Full",
+      "Plan Design Full",
+      "Market Context Full",
+    ],
+  },
+  {
+    id: "doc-3",
+    name: "Stop Loss and Leveraged Trend 1.pdf",
+    type: "application/pdf",
+    size: 2_100_000,
+    detectedType: "Renewal Proposal",
+    relevantSections: [
+      "Plan Design Summary",
+      "Plan Design Full",
+      "Market Context Summary",
+    ],
+  },
+];

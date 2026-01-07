@@ -1,8 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { CanvasType, MockDocument, WizardStepId } from "./mock-data";
-import { WIZARD_STEPS } from "./mock-data";
+import {
+  type CanvasType,
+  type ContextState,
+  MOCK_CLIENT,
+  MOCK_UPLOADED_DOCUMENTS,
+  type PriorityType,
+  type UploadedDocument,
+  type WizardStepId,
+} from "./mock-data";
 
 // Screen types
 export type ScreenType = "dashboard" | "wizard" | "processing" | "editor";
@@ -12,9 +19,8 @@ export interface PrototypeState {
   screen: ScreenType;
   wizardStep: WizardStepId;
   canvasType: CanvasType | null;
-  documents: Record<string, MockDocument[]>;
-  completedSteps: WizardStepId[];
-  skippedSteps: WizardStepId[];
+  documents: UploadedDocument[];
+  context: ContextState;
   processingProgress: number;
   processingPhaseIndex: number;
 }
@@ -22,16 +28,16 @@ export interface PrototypeState {
 // Initial state
 const createInitialState = (): PrototypeState => ({
   screen: "dashboard",
-  wizardStep: "welcome",
+  wizardStep: "upload-documents",
   canvasType: null,
-  documents: {
-    currentPlans: [],
-    financial: [],
-    renewal: [],
-    census: [],
+  documents: [],
+  context: {
+    clientName: MOCK_CLIENT.name,
+    renewalPeriod: "1/1/2022",
+    audience: null,
+    priorities: [],
+    presentationDepth: 50,
   },
-  completedSteps: [],
-  skippedSteps: [],
   processingProgress: 0,
   processingPhaseIndex: 0,
 });
@@ -47,21 +53,17 @@ export interface UsePrototypeStateReturn {
   showEditor: () => void;
 
   // Wizard navigation
-  goToWizardStep: (stepId: WizardStepId) => void;
   goToNextStep: () => void;
   goToPreviousStep: () => void;
-  skipCurrentStep: () => void;
-
-  // Step state
-  isStepCompleted: (stepId: WizardStepId) => boolean;
-  isStepAccessible: (stepId: WizardStepId) => boolean;
-  getProgress: () => number;
 
   // Document management
-  addDocuments: (category: string, docs: MockDocument[]) => void;
-  removeDocument: (category: string, docId: string) => void;
-  getDocuments: (category: string) => MockDocument[];
-  getTotalDocumentCount: () => number;
+  addDocuments: (docs: UploadedDocument[]) => void;
+  addMockDocuments: () => void;
+  removeDocument: (docId: string) => void;
+
+  // Context management
+  updateContext: (partial: Partial<ContextState>) => void;
+  togglePriority: (priority: PriorityType) => void;
 
   // Processing
   updateProcessingProgress: (progress: number, phaseIndex: number) => void;
@@ -82,16 +84,16 @@ export function usePrototypeState(): UsePrototypeStateReturn {
     setState((prev) => ({
       ...prev,
       screen: "wizard",
-      wizardStep: "welcome",
+      wizardStep: "upload-documents",
       canvasType,
-      documents: {
-        currentPlans: [],
-        financial: [],
-        renewal: [],
-        census: [],
+      documents: [],
+      context: {
+        clientName: MOCK_CLIENT.name,
+        renewalPeriod: "1/1/2022",
+        audience: null,
+        priorities: [],
+        presentationDepth: 50,
       },
-      completedSteps: [],
-      skippedSteps: [],
     }));
   }, []);
 
@@ -111,138 +113,82 @@ export function usePrototypeState(): UsePrototypeStateReturn {
     }));
   }, []);
 
-  // Wizard navigation helpers
-  const getStepIndex = (stepId: WizardStepId): number =>
-    WIZARD_STEPS.findIndex((s) => s.id === stepId);
-
-  const getNextStepId = (currentStepId: WizardStepId): WizardStepId | null => {
-    const currentIndex = getStepIndex(currentStepId);
-    if (currentIndex < WIZARD_STEPS.length - 1) {
-      return WIZARD_STEPS[currentIndex + 1].id;
-    }
-    return null;
-  };
-
-  const getPreviousStepId = (
-    currentStepId: WizardStepId
-  ): WizardStepId | null => {
-    const currentIndex = getStepIndex(currentStepId);
-    if (currentIndex > 0) {
-      return WIZARD_STEPS[currentIndex - 1].id;
-    }
-    return null;
-  };
-
-  // Wizard navigation
-  const goToWizardStep = useCallback((stepId: WizardStepId) => {
-    setState((prev) => ({
-      ...prev,
-      wizardStep: stepId,
-    }));
-  }, []);
-
+  // Wizard navigation - only 2 steps now
   const goToNextStep = useCallback(() => {
     setState((prev) => {
-      const nextStep = getNextStepId(prev.wizardStep);
-      if (!nextStep) return prev;
-
-      return {
-        ...prev,
-        wizardStep: nextStep,
-        completedSteps: prev.completedSteps.includes(prev.wizardStep)
-          ? prev.completedSteps
-          : [...prev.completedSteps, prev.wizardStep],
-      };
+      if (prev.wizardStep === "upload-documents") {
+        return { ...prev, wizardStep: "set-context" };
+      }
+      // If on set-context, trigger processing instead
+      return prev;
     });
   }, []);
 
   const goToPreviousStep = useCallback(() => {
     setState((prev) => {
-      const prevStep = getPreviousStepId(prev.wizardStep);
-      if (!prevStep) return prev;
-
-      return {
-        ...prev,
-        wizardStep: prevStep,
-      };
+      if (prev.wizardStep === "set-context") {
+        return { ...prev, wizardStep: "upload-documents" };
+      }
+      return prev;
     });
   }, []);
-
-  const skipCurrentStep = useCallback(() => {
-    setState((prev) => {
-      const nextStep = getNextStepId(prev.wizardStep);
-      if (!nextStep) return prev;
-
-      return {
-        ...prev,
-        wizardStep: nextStep,
-        skippedSteps: prev.skippedSteps.includes(prev.wizardStep)
-          ? prev.skippedSteps
-          : [...prev.skippedSteps, prev.wizardStep],
-      };
-    });
-  }, []);
-
-  // Step state
-  const isStepCompleted = useCallback(
-    (stepId: WizardStepId) => state.completedSteps.includes(stepId),
-    [state.completedSteps]
-  );
-
-  const isStepAccessible = useCallback(
-    (stepId: WizardStepId) => {
-      if (stepId === "welcome") return true;
-      if (stepId === state.wizardStep) return true;
-      return (
-        state.completedSteps.includes(stepId) ||
-        state.skippedSteps.includes(stepId)
-      );
-    },
-    [state.wizardStep, state.completedSteps, state.skippedSteps]
-  );
-
-  const getProgress = useCallback(() => {
-    const completedCount =
-      state.completedSteps.length + state.skippedSteps.length;
-    return Math.round((completedCount / WIZARD_STEPS.length) * 100);
-  }, [state.completedSteps, state.skippedSteps]);
 
   // Document management
-  const addDocuments = useCallback((category: string, docs: MockDocument[]) => {
+  const addDocuments = useCallback((docs: UploadedDocument[]) => {
     setState((prev) => ({
       ...prev,
-      documents: {
-        ...prev.documents,
-        [category]: [...(prev.documents[category] || []), ...docs],
-      },
+      documents: [...prev.documents, ...docs],
     }));
   }, []);
 
-  const removeDocument = useCallback((category: string, docId: string) => {
+  const addMockDocuments = useCallback(() => {
+    // Simulate adding mock documents after a brief delay
+    setTimeout(() => {
+      setState((prev) => ({
+        ...prev,
+        documents: [...prev.documents, ...MOCK_UPLOADED_DOCUMENTS],
+      }));
+    }, 300);
+  }, []);
+
+  const removeDocument = useCallback((docId: string) => {
     setState((prev) => ({
       ...prev,
-      documents: {
-        ...prev.documents,
-        [category]: (prev.documents[category] || []).filter(
-          (d) => d.id !== docId
-        ),
-      },
+      documents: prev.documents.filter((d) => d.id !== docId),
     }));
   }, []);
 
-  const getDocuments = useCallback(
-    (category: string) => state.documents[category] || [],
-    [state.documents]
-  );
+  // Context management
+  const updateContext = useCallback((partial: Partial<ContextState>) => {
+    setState((prev) => ({
+      ...prev,
+      context: { ...prev.context, ...partial },
+    }));
+  }, []);
 
-  const getTotalDocumentCount = useCallback(
-    () =>
-      Object.values(state.documents).reduce(
-        (sum, docs) => sum + docs.length,
-        0
-      ),
-    [state.documents]
-  );
+  const togglePriority = useCallback((priority: PriorityType) => {
+    setState((prev) => {
+      const currentPriorities = prev.context.priorities;
+      const isSelected = currentPriorities.includes(priority);
+
+      let newPriorities: PriorityType[];
+      if (isSelected) {
+        // Remove if already selected
+        newPriorities = currentPriorities.filter((p) => p !== priority);
+      } else if (currentPriorities.length < 3) {
+        // Add if under limit
+        newPriorities = [...currentPriorities, priority];
+      } else {
+        // At limit, don't add
+        return prev;
+      }
+
+      return {
+        ...prev,
+        context: { ...prev.context, priorities: newPriorities },
+      };
+    });
+  }, []);
 
   // Processing
   const updateProcessingProgress = useCallback(
@@ -267,17 +213,13 @@ export function usePrototypeState(): UsePrototypeStateReturn {
     startWizard,
     startProcessing,
     showEditor,
-    goToWizardStep,
     goToNextStep,
     goToPreviousStep,
-    skipCurrentStep,
-    isStepCompleted,
-    isStepAccessible,
-    getProgress,
     addDocuments,
+    addMockDocuments,
     removeDocument,
-    getDocuments,
-    getTotalDocumentCount,
+    updateContext,
+    togglePriority,
     updateProcessingProgress,
     reset,
   };

@@ -20,10 +20,11 @@ import {
   MOCK_SLIDES,
   MOCK_SOURCES,
 } from "./mock-data";
+import { StepIndicator } from "./step-indicator";
 
-interface CanvasEditorProps {
+type CanvasEditorProps = {
   onExit: () => void;
-}
+};
 
 export function CanvasEditor({ onExit }: CanvasEditorProps) {
   const [selectedSlideId, setSelectedSlideId] = useState(MOCK_SLIDES[0].id);
@@ -33,6 +34,11 @@ export function CanvasEditor({ onExit }: CanvasEditorProps) {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      {/* Step Indicator */}
+      <div className="border-border border-b">
+        <StepIndicator currentStep={4} />
+      </div>
+
       {/* Header */}
       <header className="flex items-center justify-between border-border border-b bg-card px-4 py-3">
         <div className="flex items-center gap-4">
