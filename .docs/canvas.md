@@ -134,14 +134,10 @@ import { executeWithCircuitBreaker, withRetry } from "@repo/ai/server/rag";
 import { errorConfigFragments } from "@repo/ai";
 
 // Circuit breaker for external benchmark APIs
-const benchmarkData = await executeWithCircuitBreaker(
-  () => fetchMercerBenchmarks(),
-  "mercer-api",
-  {
-    failureThreshold: 5,
-    recoveryTimeout: 60000,
-  }
-);
+const benchmarkData = await executeWithCircuitBreaker(() => fetchMercerBenchmarks(), "mercer-api", {
+  failureThreshold: 5,
+  recoveryTimeout: 60000
+});
 
 // Retry configuration
 const robustConfig = errorConfigFragments.robust; // Retry + fallback
@@ -153,17 +149,13 @@ const robustConfig = errorConfigFragments.robust; // Retry + fallback
 import { streamTextWithProgress, processFullStream } from "@repo/ai/generation";
 
 // Track generation progress for UI
-const result = await streamTextWithProgress(
-  prompt,
-  (progress) => updateProgressBar(progress.tokens),
-  options
-);
+const result = await streamTextWithProgress(prompt, (progress) => updateProgressBar(progress.tokens), options);
 
 // Process stream with handlers
 await processFullStream(fullStream, {
   onTextDelta: (text) => appendToCanvas(text),
   onToolCall: (tool) => logToolUsage(tool),
-  onFinish: () => markSectionComplete(),
+  onFinish: () => markSectionComplete()
 });
 ```
 
@@ -204,7 +196,7 @@ aiSdk.artifactCreated({
   artifact_id: canvasId,
   artifact_type: "document",
   model_id: "claude-3-sonnet",
-  user_id: userId,
+  user_id: userId
 });
 
 // Track AI cost
@@ -212,7 +204,7 @@ aiSdk.completionGenerated({
   model_id: "claude-3-sonnet",
   input_tokens: 150,
   output_tokens: 500,
-  cost: 0.002,
+  cost: 0.002
 });
 ```
 
@@ -245,7 +237,7 @@ import { upload } from "@repo/storage/client/next";
 // Client-side with progress
 const blob = await upload(file.name, file, {
   handleUploadUrl: "/api/benefits/upload",
-  onUploadProgress: ({ percentage }) => setProgress(percentage),
+  onUploadProgress: ({ percentage }) => setProgress(percentage)
 });
 ```
 
@@ -288,7 +280,7 @@ import { observability } from "@repo/observability/server/next";
 observability.logInfo("Canvas generated", { canvasId, userId, sectionCount });
 observability.captureException(error, {
   extra: { canvasId },
-  tags: { feature: "benefits-module" },
+  tags: { feature: "benefits-module" }
 });
 ```
 
@@ -301,7 +293,7 @@ import { flag } from "@repo/feature-flags";
 
 export const benefitsAIEnabled = flag<boolean>({
   key: "benefits-ai-generation",
-  defaultValue: false,
+  defaultValue: false
 });
 
 const aiEnabled = await benefitsAIEnabled();
@@ -383,14 +375,14 @@ const handleUpload = async (files: File[]) => {
       handleUploadUrl: "/api/benefits/upload",
       onUploadProgress: ({ percentage }) => {
         setProgress((prev) => ({ ...prev, [file.name]: percentage }));
-      },
+      }
     });
 
     // Track upload event
     aiSdk.documentCreated({
       document_id: blob.pathname,
       document_type: file.type,
-      user_id: userId,
+      user_id: userId
     });
   }
 };
@@ -404,19 +396,15 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
 
-  const result = await uploadMediaAction(
-    `benefits/${user.organizationId}/${Date.now()}-${file.name}`,
-    file,
-    {
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      allowedMimeTypes: [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      ],
-    }
-  );
+  const result = await uploadMediaAction(`benefits/${user.organizationId}/${Date.now()}-${file.name}`, file, {
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+    allowedMimeTypes: [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ]
+  });
 
   return Response.json(result);
 }
@@ -638,43 +626,28 @@ const DocumentUnderstandingSchema = z.object({
       documentId: z.string(),
       filename: z.string(),
       // AI-discovered properties (not predefined)
-      primaryDomain: z
-        .string()
-        .describe(
-          'e.g., "Health Benefits", "401(k) Retirement", "Executive Compensation"'
-        ),
+      primaryDomain: z.string().describe('e.g., "Health Benefits", "401(k) Retirement", "Executive Compensation"'),
       topics: z.array(z.string()).describe("Specific topics found in document"),
       dataPoints: z.array(
         z.object({
           name: z.string(),
-          type: z.enum([
-            "currency",
-            "percentage",
-            "count",
-            "date",
-            "text",
-            "comparison",
-          ]),
+          type: z.enum(["currency", "percentage", "count", "date", "text", "comparison"]),
           value: z.any(),
-          context: z.string(),
+          context: z.string()
         })
       ),
       keyInsights: z.array(z.string()),
-      relatedDocuments: z
-        .array(z.string())
-        .describe("IDs of documents that relate to this one"),
+      relatedDocuments: z.array(z.string()).describe("IDs of documents that relate to this one")
     })
   ),
   overallThemes: z.array(
     z.object({
       theme: z.string(),
       relevance: z.number().min(0).max(100),
-      supportingDocuments: z.array(z.string()),
+      supportingDocuments: z.array(z.string())
     })
   ),
-  suggestedCanvasFocus: z
-    .string()
-    .describe("What should this canvas primarily address?"),
+  suggestedCanvasFocus: z.string().describe("What should this canvas primarily address?")
 });
 
 // Step 1: Understand documents without assumptions
@@ -715,7 +688,7 @@ DO NOT assume this is about health benefits. It could be about ANYTHING:
 - Voluntary benefits review
 - Or something entirely different
 
-Analyze what's actually in the documents.`,
+Analyze what's actually in the documents.`
   });
 
   return understanding;
@@ -728,18 +701,14 @@ Analyze what's actually in the documents.`,
 // Schema for generative canvas plan - sections are CREATED, not selected
 const GenerativeCanvasPlanSchema = z.object({
   canvasTitle: z.string().describe("AI-generated title based on content"),
-  canvasPurpose: z
-    .string()
-    .describe("What this canvas helps the client understand"),
+  canvasPurpose: z.string().describe("What this canvas helps the client understand"),
   sections: z.array(
     z.object({
       // Everything is generated, nothing is from a predefined list
       id: z.string(),
       title: z.string().describe("AI-generated section title"),
       purpose: z.string().describe("What this section accomplishes"),
-      keyQuestions: z
-        .array(z.string())
-        .describe("Questions this section answers"),
+      keyQuestions: z.array(z.string()).describe("Questions this section answers"),
       dataSourceIds: z.array(z.string()),
       suggestedContent: z.object({
         narrativePoints: z.array(z.string()),
@@ -748,29 +717,27 @@ const GenerativeCanvasPlanSchema = z.object({
             type: z.string().describe('Chart type or "none" if not applicable'),
             title: z.string(),
             dataDescription: z.string(),
-            rationale: z.string().describe("Why this visualization helps"),
+            rationale: z.string().describe("Why this visualization helps")
           })
         ),
         callouts: z.array(
           z.object({
             type: z.enum(["insight", "warning", "recommendation", "question"]),
-            content: z.string(),
+            content: z.string()
           })
-        ),
+        )
       }),
       confidence: z.number().min(0).max(100),
-      generationPriority: z.number().describe("1 = generate first"),
+      generationPriority: z.number().describe("1 = generate first")
     })
   ),
   additionalSectionIdeas: z.array(
     z.object({
       title: z.string(),
       description: z.string(),
-      wouldRequire: z
-        .string()
-        .describe("What additional data/documents would enable this"),
+      wouldRequire: z.string().describe("What additional data/documents would enable this")
     })
-  ),
+  )
 });
 
 // Step 2: Generate canvas plan based on document understanding
@@ -808,7 +775,7 @@ Create a canvas structure that:
 
 ## Remember
 This could be about ANY topic: health benefits, 401(k), executive comp, HR consulting, compliance, etc.
-Create sections that make sense for THIS specific content.`,
+Create sections that make sense for THIS specific content.`
   });
 
   return plan;
@@ -829,9 +796,7 @@ const generateSectionOnDemand = async (
   const bridge = createRAGDatabaseBridge({ namespace: `benefits-${clientId}` });
 
   // Search for relevant content based on the request
-  const relevantDocs = await bridge.queryDocuments(request.description, {
-    topK: 20,
-  });
+  const relevantDocs = await bridge.queryDocuments(request.description, { topK: 20 });
 
   // Generate the section structure
   const sectionPlan = await generateObject({
@@ -847,26 +812,18 @@ const generateSectionOnDemand = async (
             z.object({
               type: z.string(),
               title: z.string(),
-              data: z.any(),
+              data: z.any()
             })
           ),
           callouts: z.array(
             z.object({
-              type: z.enum([
-                "insight",
-                "warning",
-                "recommendation",
-                "question",
-              ]),
-              content: z.string(),
+              type: z.enum(["insight", "warning", "recommendation", "question"]),
+              content: z.string()
             })
-          ),
+          )
         })
         .optional(),
-      suggestedDocuments: z
-        .array(z.string())
-        .optional()
-        .describe("If we cannot generate, what documents would help"),
+      suggestedDocuments: z.array(z.string()).optional().describe("If we cannot generate, what documents would help")
     }),
     prompt: `A consultant wants to add this section to their canvas:
 "${request.description}"
@@ -882,14 +839,14 @@ ${request.context || "No additional context"}
 2. If yes, create the section content with appropriate visualizations
 3. If no, explain why and suggest what documents would help
 
-Be creative - if the data can support the request in any way, try to generate something useful.`,
+Be creative - if the data can support the request in any way, try to generate something useful.`
   });
 
   if (!sectionPlan.canGenerate) {
     return {
       success: false,
       reason: sectionPlan.reason,
-      suggestedDocuments: sectionPlan.suggestedDocuments,
+      suggestedDocuments: sectionPlan.suggestedDocuments
     };
   }
 
@@ -1065,12 +1022,7 @@ const GenerativeSectionSchema = z.object({
       z.object({
         type: z.literal("narrative"),
         text: z.string(),
-        tone: z.enum([
-          "informative",
-          "persuasive",
-          "cautionary",
-          "celebratory",
-        ]),
+        tone: z.enum(["informative", "persuasive", "cautionary", "celebratory"])
       }),
       z.object({
         type: z.literal("key_metric"),
@@ -1080,19 +1032,19 @@ const GenerativeSectionSchema = z.object({
           .object({
             direction: z.enum(["up", "down", "flat"]),
             amount: z.string(),
-            context: z.string(),
+            context: z.string()
           })
-          .optional(),
+          .optional()
       }),
       z.object({
         type: z.literal("comparison"),
         items: z.array(
           z.object({
             label: z.string(),
-            values: z.record(z.string(), z.any()),
+            values: z.record(z.string(), z.any())
           })
         ),
-        highlightBest: z.boolean().optional(),
+        highlightBest: z.boolean().optional()
       }),
       z.object({
         type: z.literal("timeline"),
@@ -1100,38 +1052,36 @@ const GenerativeSectionSchema = z.object({
           z.object({
             date: z.string(),
             title: z.string(),
-            description: z.string(),
+            description: z.string()
           })
-        ),
+        )
       }),
       z.object({
         type: z.literal("recommendation"),
         title: z.string(),
         description: z.string(),
         impact: z.enum(["high", "medium", "low"]),
-        effort: z.enum(["high", "medium", "low"]),
+        effort: z.enum(["high", "medium", "low"])
       }),
       z.object({
         type: z.literal("risk"),
         title: z.string(),
         description: z.string(),
         severity: z.enum(["critical", "high", "medium", "low"]),
-        mitigation: z.string().optional(),
+        mitigation: z.string().optional()
       }),
       z.object({
         type: z.literal("callout"),
         style: z.enum(["info", "warning", "success", "question"]),
-        content: z.string(),
+        content: z.string()
       }),
       z.object({
         type: z.literal("visualization"),
-        chartType: z
-          .string()
-          .describe("AI-determined: bar, line, pie, scatter, etc."),
+        chartType: z.string().describe("AI-determined: bar, line, pie, scatter, etc."),
         title: z.string(),
         data: z.any(),
-        insight: z.string().optional(),
-      }),
+        insight: z.string().optional()
+      })
     ])
   ),
 
@@ -1141,14 +1091,14 @@ const GenerativeSectionSchema = z.object({
       documentId: z.string(),
       documentName: z.string(),
       excerpt: z.string().optional(),
-      pageOrLocation: z.string().optional(),
+      pageOrLocation: z.string().optional()
     })
   ),
 
   // Metadata
   confidence: z.number().min(0).max(100),
   generatedAt: z.string(),
-  lastModified: z.string().optional(),
+  lastModified: z.string().optional()
 });
 ```
 
@@ -1156,37 +1106,26 @@ const GenerativeSectionSchema = z.object({
 
 ```typescript
 // Integrated with Chunk 5's chat system, but available from Chunk 4
-const createSectionFromChat = async (
-  canvasId: string,
-  userMessage: string,
-  chatContext: ChatContext
-) => {
+const createSectionFromChat = async (canvasId: string, userMessage: string, chatContext: ChatContext) => {
   const canvas = await getCanvas(canvasId);
-  const bridge = createRAGDatabaseBridge({
-    namespace: `benefits-${canvas.clientId}`,
-  });
+  const bridge = createRAGDatabaseBridge({ namespace: `benefits-${canvas.clientId}` });
 
   // Determine intent
   const intent = await classifyIntent(userMessage);
 
   if (intent.type === "create_section") {
     // Search for relevant content
-    const relevantDocs = await bridge.queryDocuments(intent.searchQuery, {
-      topK: 20,
-    });
+    const relevantDocs = await bridge.queryDocuments(intent.searchQuery, { topK: 20 });
 
     // Check if we can generate this section
-    const feasibility = await assessFeasibility(
-      intent.description,
-      relevantDocs
-    );
+    const feasibility = await assessFeasibility(intent.description, relevantDocs);
 
     if (!feasibility.canGenerate) {
       return {
         type: "clarification_needed",
         message: feasibility.reason,
         suggestions: feasibility.alternatives,
-        documentsNeeded: feasibility.missingDocuments,
+        documentsNeeded: feasibility.missingDocuments
       };
     }
 
@@ -1209,7 +1148,7 @@ Current sections: ${canvas.sections.map((s) => s.title).join(", ")}
 - Use the most appropriate content blocks for the data
 - Include visualizations only if they add value
 - Cite all sources
-- Be specific and actionable`,
+- Be specific and actionable`
     });
 
     // Add to canvas
@@ -1218,7 +1157,7 @@ Current sections: ${canvas.sections.map((s) => s.title).join(", ")}
     return {
       type: "section_created",
       section,
-      message: `Created "${section.title}" section with ${section.content.length} content blocks.`,
+      message: `Created "${section.title}" section with ${section.content.length} content blocks.`
     };
   }
 
@@ -1255,10 +1194,7 @@ Current sections: ${canvas.sections.map((s) => s.title).join(", ")}
 
 ```typescript
 // AI decides if/how to visualize - no forced charts
-const determineVisualization = async (
-  dataPoints: DataPoint[],
-  sectionContext: string
-) => {
+const determineVisualization = async (dataPoints: DataPoint[], sectionContext: string) => {
   const decision = await generateObject({
     model: models.language("fast"),
     schema: z.object({
@@ -1270,11 +1206,11 @@ const determineVisualization = async (
             type: z.string(),
             title: z.string(),
             dataMapping: z.any(),
-            insight: z.string(),
+            insight: z.string()
           })
         )
         .optional(),
-      alternativePresentation: z.string().optional(),
+      alternativePresentation: z.string().optional()
     }),
     prompt: `Given this data and context, should we create a visualization?
 
@@ -1289,7 +1225,7 @@ ${sectionContext}
 - A table might be better than a chart
 - Key metrics might be better as callout cards
 - Sometimes narrative text is clearest
-- Don't force a chart just to have one`,
+- Don't force a chart just to have one`
   });
 
   return decision;
@@ -1529,12 +1465,9 @@ import { createRAGDatabaseBridge } from "@repo/ai/rag";
 import { streamText } from "@repo/ai/generation";
 
 // Chat with RAG context for document lookups
-const handleChatMessage = async (
-  message: string,
-  canvasContext: CanvasContext
-) => {
+const handleChatMessage = async (message: string, canvasContext: CanvasContext) => {
   const bridge = createRAGDatabaseBridge({
-    namespace: `benefits-${canvasContext.clientId}`,
+    namespace: `benefits-${canvasContext.clientId}`
   });
 
   // Determine if user is asking for new information from documents
@@ -1554,7 +1487,7 @@ const handleChatMessage = async (
     system: `You are helping refine a pre-renewal benefits canvas.
 Current section: ${canvasContext.currentSection}
 ${ragContext}`,
-    messages: canvasContext.chatHistory,
+    messages: canvasContext.chatHistory
   });
 
   return textStream;
@@ -1644,9 +1577,7 @@ import { usePptxExport } from "@repo/pptx-editor";
 import { aiSdk } from "@repo/analytics/shared/emitters";
 
 // Generate PPTX from canvas data
-export async function exportCanvasToPptx(
-  canvas: PreRenewalCanvas
-): Promise<Blob> {
+export async function exportCanvasToPptx(canvas: PreRenewalCanvas): Promise<Blob> {
   const pptx = new PptxWriter();
 
   // Set metadata
@@ -1654,7 +1585,7 @@ export async function exportCanvasToPptx(
     title: `Benefits Review - ${canvas.clientName}`,
     creator: "OneDigital",
     company: "OneDigital",
-    description: `Pre-Renewal Analysis generated on ${new Date().toLocaleDateString()}`,
+    description: `Pre-Renewal Analysis generated on ${new Date().toLocaleDateString()}`
   });
 
   // Title slide
@@ -1667,7 +1598,7 @@ export async function exportCanvasToPptx(
       text: canvas.title,
       fontSize: 4400,
       bold: true,
-      align: "center",
+      align: "center"
     },
     {
       x: 914400,
@@ -1676,8 +1607,8 @@ export async function exportCanvasToPptx(
       height: 457200,
       text: canvas.clientName,
       fontSize: 2400,
-      align: "center",
-    },
+      align: "center"
+    }
   ]);
 
   // Section slides
@@ -1690,8 +1621,8 @@ export async function exportCanvasToPptx(
         height: 914400,
         text: section.name,
         fontSize: 3200,
-        bold: true,
-      },
+        bold: true
+      }
     ]);
 
     pptx.addSlide([
@@ -1701,8 +1632,8 @@ export async function exportCanvasToPptx(
         width: 7315200,
         height: 5486400,
         text: section.content,
-        fontSize: 1800,
-      },
+        fontSize: 1800
+      }
     ]);
   }
 
@@ -1711,7 +1642,7 @@ export async function exportCanvasToPptx(
     artifact_id: canvas.id,
     artifact_type: "document",
     publish_format: "pptx",
-    user_id: canvas.userId,
+    user_id: canvas.userId
   });
 
   return await pptx.generate();
@@ -1814,7 +1745,7 @@ const categorizeDocument = async (filename: string, contentPreview: string) => {
       "PRIOR_PRESENTATION",
       "CORRESPONDENCE",
       "BENCHMARKING",
-      "OTHER",
+      "OTHER"
     ]
   );
   return category;
@@ -1824,18 +1755,11 @@ const categorizeDocument = async (filename: string, contentPreview: string) => {
 ### Resilient Benchmark Service
 
 ```typescript
-import {
-  executeWithCircuitBreaker,
-  executeWithFallback,
-} from "@repo/ai/server/rag";
+import { executeWithCircuitBreaker, executeWithFallback } from "@repo/ai/server/rag";
 import { errorConfigFragments } from "@repo/ai";
 
 // Fetch benchmarks with circuit breaker and fallback
-const fetchBenchmarks = async (
-  industry: string,
-  size: number,
-  region: string
-) => {
+const fetchBenchmarks = async (industry: string, size: number, region: string) => {
   // Try primary provider with circuit breaker
   const mercerData = await executeWithCircuitBreaker(
     () => fetchMercerBenchmarks(industry, size, region),
