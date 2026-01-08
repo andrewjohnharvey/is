@@ -267,6 +267,25 @@ export const AUDIENCE_OPTIONS: {
   },
 ];
 
+// Budget comparison options for projected increase
+export type BudgetComparisonType =
+  | "significantly-exceeds"
+  | "slightly-exceeds"
+  | "on-target"
+  | "slightly-under"
+  | "significantly-under";
+
+export const BUDGET_COMPARISON_OPTIONS: {
+  id: BudgetComparisonType;
+  label: string;
+}[] = [
+  { id: "significantly-exceeds", label: "Significantly Exceeds Budget" },
+  { id: "slightly-exceeds", label: "Slightly Exceeds Budget" },
+  { id: "on-target", label: "On Target" },
+  { id: "slightly-under", label: "Slightly Under Budget" },
+  { id: "significantly-under", label: "Significantly Under Budget" },
+];
+
 // Priority options (multi-select, max 3)
 export type PriorityType =
   | "cost-management"
@@ -334,9 +353,19 @@ export interface UploadedDocument {
 export interface ContextState {
   clientName: string;
   renewalPeriod: string;
+  // Projected increase fields (all optional)
+  expectedIncreasePercent: number | null;
+  budgetComparison: BudgetComparisonType | null;
+  nationalAveragePercent: number | null;
+  regionalAveragePercent: number | null;
+  industryAveragePercent: number | null;
+  // Audience and priorities
   audience: AudienceType | null;
   priorities: PriorityType[];
   presentationDepth: number;
+  // AI context fields (optional)
+  strategyIdeas: string;
+  additionalContext: string;
 }
 
 // Mock uploaded documents for simulation

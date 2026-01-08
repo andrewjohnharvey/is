@@ -34,9 +34,16 @@ const createInitialState = (): PrototypeState => ({
   context: {
     clientName: MOCK_CLIENT.name,
     renewalPeriod: "1/1/2022",
+    expectedIncreasePercent: null,
+    budgetComparison: null,
+    nationalAveragePercent: null,
+    regionalAveragePercent: null,
+    industryAveragePercent: null,
     audience: null,
     priorities: [],
     presentationDepth: 50,
+    strategyIdeas: "",
+    additionalContext: "",
   },
   processingProgress: 0,
   processingPhaseIndex: 0,
@@ -90,9 +97,16 @@ export function usePrototypeState(): UsePrototypeStateReturn {
       context: {
         clientName: MOCK_CLIENT.name,
         renewalPeriod: "1/1/2022",
+        expectedIncreasePercent: null,
+        budgetComparison: null,
+        nationalAveragePercent: null,
+        regionalAveragePercent: null,
+        industryAveragePercent: null,
         audience: null,
         priorities: [],
         presentationDepth: 50,
+        strategyIdeas: "",
+        additionalContext: "",
       },
     }));
   }, []);

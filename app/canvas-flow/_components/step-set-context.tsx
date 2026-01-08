@@ -1,13 +1,28 @@
 "use client";
 
-import { Check } from "lucide-react";
+import {
+  Check,
+  DollarSign,
+  Lightbulb,
+  MessageSquareText,
+  TrendingUp,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WizardNavigation } from "@/components/wizard/wizard-navigation";
 import { cn } from "@/lib/utils";
 import {
   AUDIENCE_OPTIONS,
   type AudienceType,
+  BUDGET_COMPARISON_OPTIONS,
+  type BudgetComparisonType,
   type ContextState,
   PRIORITY_OPTIONS,
   type PriorityType,
@@ -80,6 +95,189 @@ export function StepSetContext({
             </div>
           </div>
 
+          {/* Projected Increase Section */}
+          <Card className="mt-8 p-6">
+            {/* Projected Increase Header */}
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50">
+                <TrendingUp className="size-4 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="font-medium text-foreground">
+                  Projected Increase
+                </h2>
+              </div>
+            </div>
+
+            {/* Expected Increase & Budget Comparison Row */}
+            <div className="mt-5 grid grid-cols-2 gap-6">
+              <div>
+                <label
+                  className="mb-2 block font-medium text-foreground text-sm"
+                  htmlFor="expected-increase"
+                >
+                  Expected Increase %
+                </label>
+                <div className="relative">
+                  <Input
+                    className="pr-8"
+                    id="expected-increase"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      onUpdateContext({
+                        expectedIncreasePercent:
+                          value === "" ? null : Number(value),
+                      });
+                    }}
+                    placeholder="e.g., 9"
+                    type="number"
+                    value={context.expectedIncreasePercent ?? ""}
+                  />
+                  <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 right-3 text-muted-foreground">
+                    %
+                  </span>
+                </div>
+                <p className="mt-1.5 text-muted-foreground text-xs">
+                  From analytics team based on claims data
+                </p>
+              </div>
+              <div>
+                <label
+                  className="mb-2 block font-medium text-foreground text-sm"
+                  htmlFor="budget-comparison"
+                >
+                  Budget Comparison
+                </label>
+                <Select
+                  onValueChange={(value: BudgetComparisonType) =>
+                    onUpdateContext({ budgetComparison: value })
+                  }
+                  value={context.budgetComparison ?? undefined}
+                >
+                  <SelectTrigger className="h-12" id="budget-comparison">
+                    <SelectValue placeholder="Select comparison" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUDGET_COMPARISON_OPTIONS.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 text-muted-foreground text-xs">
+                  How does the increase compare to allocated budget?
+                </p>
+              </div>
+            </div>
+
+            {/* Market Benchmarks Section */}
+            <div className="mt-6 border-border border-t pt-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-green-50">
+                  <DollarSign className="size-4 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    Market Benchmarks{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (Optional)
+                    </span>
+                  </h3>
+                  <p className="text-muted-foreground text-xs">
+                    Add context from industry, regional, or national data if
+                    available
+                  </p>
+                </div>
+              </div>
+
+              {/* Benchmark Inputs Row */}
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div>
+                  <label
+                    className="mb-2 block font-medium text-foreground text-sm"
+                    htmlFor="national-average"
+                  >
+                    National Average %
+                  </label>
+                  <div className="relative">
+                    <Input
+                      className="pr-8"
+                      id="national-average"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onUpdateContext({
+                          nationalAveragePercent:
+                            value === "" ? null : Number(value),
+                        });
+                      }}
+                      placeholder="e.g., 8"
+                      type="number"
+                      value={context.nationalAveragePercent ?? ""}
+                    />
+                    <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 right-3 text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    className="mb-2 block font-medium text-foreground text-sm"
+                    htmlFor="regional-average"
+                  >
+                    Regional Average %
+                  </label>
+                  <div className="relative">
+                    <Input
+                      className="pr-8"
+                      id="regional-average"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onUpdateContext({
+                          regionalAveragePercent:
+                            value === "" ? null : Number(value),
+                        });
+                      }}
+                      placeholder="e.g., 8"
+                      type="number"
+                      value={context.regionalAveragePercent ?? ""}
+                    />
+                    <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 right-3 text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    className="mb-2 block font-medium text-foreground text-sm"
+                    htmlFor="industry-average"
+                  >
+                    Industry Average %
+                  </label>
+                  <div className="relative">
+                    <Input
+                      className="pr-8"
+                      id="industry-average"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onUpdateContext({
+                          industryAveragePercent:
+                            value === "" ? null : Number(value),
+                        });
+                      }}
+                      placeholder="e.g., 6"
+                      type="number"
+                      value={context.industryAveragePercent ?? ""}
+                    />
+                    <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 right-3 text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           {/* Audience Selection */}
           <div className="mt-10">
             <p className="mb-4 text-muted-foreground text-sm">
@@ -143,6 +341,68 @@ export function StepSetContext({
               </span>
             </div>
           </div>
+
+          {/* AI Context Section */}
+          <Card className="mt-10 p-6">
+            {/* Strategy Ideas */}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-amber-50">
+                  <Lightbulb className="size-4 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium text-foreground">
+                    Strategy Ideas{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (Optional)
+                    </span>
+                  </h2>
+                  <p className="text-muted-foreground text-xs">
+                    Share cost-saving strategies or ideas for the AI to consider
+                  </p>
+                </div>
+              </div>
+              <textarea
+                className="mt-4 min-h-[100px] w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                id="strategy-ideas"
+                onChange={(e) =>
+                  onUpdateContext({ strategyIdeas: e.target.value })
+                }
+                placeholder="e.g., Increase employee contributions, raise deductibles, explore HDHPs with HSA options, consider voluntary benefits..."
+                value={context.strategyIdeas}
+              />
+            </div>
+
+            {/* Additional Context */}
+            <div className="mt-6 border-border border-t pt-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-purple-50">
+                  <MessageSquareText className="size-4 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium text-foreground">
+                    Additional Context{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (Optional)
+                    </span>
+                  </h2>
+                  <p className="text-muted-foreground text-xs">
+                    Any other information that could help generate better
+                    insights
+                  </p>
+                </div>
+              </div>
+              <textarea
+                className="mt-4 min-h-[100px] w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                id="additional-context"
+                onChange={(e) =>
+                  onUpdateContext({ additionalContext: e.target.value })
+                }
+                placeholder="e.g., Company is planning layoffs next quarter, recent acquisition pending, union negotiations upcoming..."
+                value={context.additionalContext}
+              />
+            </div>
+          </Card>
         </div>
       </div>
 
