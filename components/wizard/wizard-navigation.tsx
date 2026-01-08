@@ -37,7 +37,7 @@ export function WizardNavigation({
         className
       )}
     >
-      <div className="mx-auto flex max-w-3xl items-center justify-between">
+      <div className="mx-auto flex max-w-6xl items-center justify-between">
         {/* Back button */}
         <div>
           {onBack && canGoBack && (
