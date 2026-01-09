@@ -234,8 +234,8 @@ export const MOCK_SOURCES = [
   "SPD_Medical_2024.pdf",
 ];
 
-// Wizard steps - just 2 interactive steps
-export type WizardStepId = "upload-documents" | "set-context";
+// Wizard steps - 3 interactive steps
+export type WizardStepId = "upload-documents" | "set-context" | "review-plan";
 
 // Audience options (single select)
 export type AudienceType =
@@ -407,3 +407,180 @@ export const MOCK_UPLOADED_DOCUMENTS: UploadedDocument[] = [
     ],
   },
 ];
+
+// Plan step types
+export type CalloutType = "insight" | "warning" | "recommendation";
+
+export interface PlanCallout {
+  type: CalloutType;
+  content: string;
+}
+
+export interface PlanSection {
+  id: string;
+  title: string;
+  purpose: string;
+  confidence: number;
+  suggestedVisualizations: string[];
+  narrativePoints: string[];
+  callouts: PlanCallout[];
+}
+
+export interface CanvasPlan {
+  canvasTitle: string;
+  canvasPurpose: string;
+  sections: PlanSection[];
+  additionalIdeas: { title: string; description: string }[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+// Mock initial plan
+export const MOCK_INITIAL_PLAN: CanvasPlan = {
+  canvasTitle: "2025 Benefits Renewal Analysis",
+  canvasPurpose:
+    "Help leadership understand renewal options and make informed decisions about benefits strategy",
+  sections: [
+    {
+      id: "section-1",
+      title: "Executive Summary",
+      purpose:
+        "High-level overview of renewal situation and key recommendations",
+      confidence: 95,
+      suggestedVisualizations: ["key metrics"],
+      narrativePoints: [
+        "8.5% projected cost increase for 2025",
+        "3 plan design options being evaluated",
+        "Renewal effective date: January 1, 2025",
+        "Total annual premium: $2.4M",
+      ],
+      callouts: [
+        {
+          type: "insight",
+          content: "Claims trending 12% higher than prior year",
+        },
+        {
+          type: "warning",
+          content: "ACA affordability threshold at risk (9.8% vs 9.12% limit)",
+        },
+        {
+          type: "recommendation",
+          content: "Consider HDHP with HSA to manage costs",
+        },
+      ],
+    },
+    {
+      id: "section-2",
+      title: "Cost Analysis",
+      purpose: "Break down current vs projected costs with trend analysis",
+      confidence: 90,
+      suggestedVisualizations: ["bar chart", "comparison table"],
+      narrativePoints: [
+        "Medical costs: $1.8M → $1.95M (+8.3%)",
+        "Dental costs: $180K → $192K (+6.7%)",
+        "Vision costs: $45K → $47K (+4.4%)",
+        "Stop-loss premium increasing 15%",
+      ],
+      callouts: [
+        {
+          type: "insight",
+          content: "Medical driving 85% of total cost increase",
+        },
+        { type: "warning", content: "Stop-loss laser on 2 claimants" },
+        {
+          type: "recommendation",
+          content: "Negotiate stop-loss separately from medical",
+        },
+      ],
+    },
+    {
+      id: "section-3",
+      title: "Plan Design Comparison",
+      purpose: "Compare current plans to proposed changes and alternatives",
+      confidence: 85,
+      suggestedVisualizations: ["comparison table"],
+      narrativePoints: [
+        "Current PPO: $450 deductible, 80/20 coinsurance",
+        "Option A: Increase deductible to $750, saves 4%",
+        "Option B: Add HDHP tier, saves 6-8%",
+        "Employee contribution scenarios modeled",
+      ],
+      callouts: [
+        {
+          type: "insight",
+          content: "72% of employees currently on PPO plan",
+        },
+        {
+          type: "recommendation",
+          content: "HDHP option could attract younger employees",
+        },
+      ],
+    },
+    {
+      id: "section-4",
+      title: "Claims Trends",
+      purpose: "Analyze claims patterns, cost drivers, and utilization trends",
+      confidence: 80,
+      suggestedVisualizations: ["line chart", "breakdown"],
+      narrativePoints: [
+        "Q3 large claimant: $340K (cardiac surgery)",
+        "Specialty Rx up 22% year-over-year",
+        "ER utilization down 8% with telehealth adoption",
+        "Preventive care visits increased 15%",
+      ],
+      callouts: [
+        {
+          type: "warning",
+          content: "Large claimant skewed Q3 loss ratio to 94%",
+        },
+        {
+          type: "insight",
+          content: "Excluding large claimant, trend is 6.2%",
+        },
+        {
+          type: "recommendation",
+          content: "Implement specialty Rx management program",
+        },
+      ],
+    },
+    {
+      id: "section-5",
+      title: "Recommendations",
+      purpose:
+        "Strategic recommendations based on priorities and data analysis",
+      confidence: 88,
+      suggestedVisualizations: [],
+      narrativePoints: [
+        "Recommend Option B with HDHP tier addition",
+        "Negotiate 3-year rate guarantee",
+        "Implement cost containment programs",
+        "Enhance employee communication strategy",
+      ],
+      callouts: [
+        {
+          type: "recommendation",
+          content: "Projected 5-year savings of $480K with Option B",
+        },
+        {
+          type: "insight",
+          content: "Aligns with employee preference survey results",
+        },
+      ],
+    },
+  ],
+  additionalIdeas: [
+    {
+      title: "Benchmarking Analysis",
+      description: "Compare costs and plan designs to industry averages",
+    },
+    {
+      title: "Employee Impact Analysis",
+      description: "Show how changes affect different employee groups",
+    },
+  ],
+};

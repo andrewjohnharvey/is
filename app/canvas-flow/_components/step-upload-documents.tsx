@@ -36,10 +36,17 @@ export function StepUploadDocuments({
           </p>
 
           {/* Dropzone */}
-          <button
+          <div
             className="mt-8 flex min-h-[200px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-border border-dashed p-8 transition-all duration-200 hover:border-primary/50 hover:bg-muted/50"
             onClick={onAddMockDocuments}
-            type="button"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onAddMockDocuments();
+              }
+            }}
+            role="button"
+            tabIndex={0}
           >
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -63,7 +70,7 @@ export function StepUploadDocuments({
                 Browse Files
               </Button>
             </div>
-          </button>
+          </div>
 
           {/* Uploaded Documents List */}
           {hasDocuments && (

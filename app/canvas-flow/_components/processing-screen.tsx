@@ -29,7 +29,7 @@ export function ProcessingScreen({
     <div className="flex h-full flex-col bg-background">
       {/* Step Indicator */}
       <div className="border-border border-b">
-        <StepIndicator currentStep={3} />
+        <StepIndicator currentStep={4} />
       </div>
 
       {/* Content */}

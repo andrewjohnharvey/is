@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   { id: 1, label: "Document Upload" },
   { id: 2, label: "Context" },
-  { id: 3, label: "Generation" },
-  { id: 4, label: "Editing" },
+  { id: 3, label: "Plan" },
+  { id: 4, label: "Generation" },
+  { id: 5, label: "Editing" },
 ];
 
 type StepIndicatorProps = {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2 | 3 | 4 | 5;
 };
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
