@@ -271,4 +271,22 @@ export default defineSchema({
     startedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
   }).index("by_canvas", ["canvasId"]),
+
+  // Plan chat messages - for AI-assisted plan refinement
+  planChatMessages: defineTable({
+    canvasId: v.id("canvases"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    // Tool calls executed during this message (for assistant messages)
+    toolCalls: v.optional(
+      v.array(
+        v.object({
+          toolName: v.string(),
+          args: v.any(),
+          result: v.optional(v.any()),
+        })
+      )
+    ),
+    createdAt: v.number(),
+  }).index("by_canvas", ["canvasId"]),
 });

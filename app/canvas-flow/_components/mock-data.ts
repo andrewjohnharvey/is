@@ -1,3 +1,9 @@
+// Prompt configurations loaded from markdown files in content/canvas-flow/
+import {
+  AUDIENCE_CONFIGS,
+  PRIORITY_CONFIGS,
+} from "../_generated/prompt-configs";
+
 // Mock client (pre-selected context)
 export const MOCK_CLIENT = {
   id: "acme-corp",
@@ -238,6 +244,7 @@ export const MOCK_SOURCES = [
 export type WizardStepId = "upload-documents" | "set-context" | "review-plan";
 
 // Audience options (single select)
+// Configs loaded from markdown files in content/canvas-flow/audiences/
 export type AudienceType =
   | "c-suite"
   | "hr-leadership"
@@ -248,24 +255,11 @@ export const AUDIENCE_OPTIONS: {
   id: AudienceType;
   label: string;
   description: string;
-}[] = [
-  { id: "c-suite", label: "C-Suite Executives", description: "CEO, CFO, COO" },
-  {
-    id: "hr-leadership",
-    label: "HR Leadership",
-    description: "CHRO, Benefits Manager",
-  },
-  {
-    id: "finance-team",
-    label: "Finance Team",
-    description: "Financial analysis focus",
-  },
-  {
-    id: "benefits-committee",
-    label: "Benefits Committee",
-    description: "Cross-functional group",
-  },
-];
+}[] = AUDIENCE_CONFIGS.map((config) => ({
+  id: config.id as AudienceType,
+  label: config.audience,
+  description: config.description,
+}));
 
 // Budget comparison options for projected increase
 export type BudgetComparisonType =
@@ -287,6 +281,7 @@ export const BUDGET_COMPARISON_OPTIONS: {
 ];
 
 // Priority options (multi-select, max 3)
+// Configs loaded from markdown files in content/canvas-flow/priorities/
 export type PriorityType =
   | "cost-management"
   | "coverage-quality"
@@ -299,38 +294,11 @@ export const PRIORITY_OPTIONS: {
   id: PriorityType;
   label: string;
   description: string;
-}[] = [
-  {
-    id: "cost-management",
-    label: "Cost Management",
-    description: "Minimize premium increases",
-  },
-  {
-    id: "coverage-quality",
-    label: "Coverage Quality",
-    description: "Maintain rich benefits",
-  },
-  {
-    id: "employee-experience",
-    label: "Employee Experience",
-    description: "Member satisfaction",
-  },
-  {
-    id: "talent-competitiveness",
-    label: "Talent Competitiveness",
-    description: "Market positioning",
-  },
-  {
-    id: "cost-predictability",
-    label: "Cost Predictability",
-    description: "Stable multi-year costs",
-  },
-  {
-    id: "data-transparency",
-    label: "Data Transparency",
-    description: "Better insights and control",
-  },
-];
+}[] = PRIORITY_CONFIGS.map((config) => ({
+  id: config.id as PriorityType,
+  label: config.priority,
+  description: config.description,
+}));
 
 // Relevance sections for document tags
 export const RELEVANCE_SECTIONS = [

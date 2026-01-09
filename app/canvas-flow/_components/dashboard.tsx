@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, FileText, Plus } from "lucide-react";
+import { useQuery } from "convex/react";
+import { ArrowLeft, ChevronDown, FileText, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,19 +13,66 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import {
-  CANVAS_TYPE_OPTIONS,
-  type CanvasType,
-  MOCK_CANVASES,
-  MOCK_CLIENT,
-} from "./mock-data";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { CANVAS_TYPE_OPTIONS, type CanvasType, MOCK_CLIENT } from "./mock-data";
 
 interface DashboardProps {
   onStartWizard: (canvasType: CanvasType) => void;
+  isCreatingCanvas?: boolean;
+  clientId?: Id<"clients">;
 }
 
-export function Dashboard({ onStartWizard }: DashboardProps) {
+export function Dashboard({
+  onStartWizard,
+  isCreatingCanvas = false,
+  clientId,
+}: DashboardProps) {
+  // Query real canvases from Convex if we have a clientId
+  const canvases = useQuery(
+    api.canvases.listByClient,
+    clientId ? { clientId } : "skip"
+  );
+
+  // Format date for display
+  const formatDate = (timestamp: number) =>
+    new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  // Map canvas type to display label
+  const getCanvasTypeLabel = (
+    canvasType?:
+      | "general"
+      | "pre_renewal"
+      | "renewal"
+      | "post_renewal"
+      | "workforce_investment"
+      | "benchmarking"
+      | "strategic_roadmap"
+  ) => {
+    switch (canvasType) {
+      case "pre_renewal":
+        return "Pre-Renewal Analysis";
+      case "renewal":
+        return "Renewal Analysis";
+      case "post_renewal":
+        return "Post-Renewal Analysis";
+      case "benchmarking":
+        return "Benchmarking Report";
+      case "workforce_investment":
+        return "Workforce Investment";
+      case "strategic_roadmap":
+        return "Strategic Roadmap";
+      case "general":
+        return "General Analysis";
+      default:
+        return "Canvas";
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto bg-background">
       {/* Header */}
@@ -51,10 +100,19 @@ export function Dashboard({ onStartWizard }: DashboardProps) {
           <h2 className="font-semibold font-serif text-xl">Canvases</h2>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>
-                <Plus className="mr-2 size-4" />
-                New Canvas
-                <ChevronDown className="ml-2 size-4" />
+              <Button disabled={isCreatingCanvas}>
+                {isCreatingCanvas ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 size-4" />
+                    New Canvas
+                    <ChevronDown className="ml-2 size-4" />
+                  </>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -79,52 +137,49 @@ export function Dashboard({ onStartWizard }: DashboardProps) {
           <Input className="max-w-sm" placeholder="Search canvases..." />
         </div>
 
-        {/* Canvas List */}
+        {/* Canvas List - Real canvases from Convex */}
         <div className="flex flex-col gap-4">
-          {MOCK_CANVASES.map((canvas) => (
-            <Card key={canvas.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="mb-1 flex items-center gap-3">
-                      <h3 className="font-medium">{canvas.title}</h3>
-                      <StatusBadge status={canvas.status} />
-                    </div>
-                    <p className="mb-2 text-muted-foreground text-sm">
-                      {canvas.type}
-                    </p>
-                    <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                      <span>{canvas.effectiveDate}</span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="size-3" />
-                        {canvas.docCount} docs
-                      </span>
-                      <span>{canvas.lastUpdated}</span>
+          {canvases === undefined ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Loading canvases...
+            </div>
+          ) : canvases.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <FileText className="mx-auto mb-4 size-12 text-muted-foreground" />
+                <h3 className="mb-2 font-medium">No canvases yet</h3>
+                <p className="mb-4 text-muted-foreground text-sm">
+                  Create your first canvas to get started with your analysis.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            canvases.map((canvas) => (
+              <Card key={canvas._id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="mb-1 flex items-center gap-3">
+                        <h3 className="font-medium">{canvas.name}</h3>
+                        <StatusBadge status={canvas.status} />
+                      </div>
+                      <p className="mb-2 text-muted-foreground text-sm">
+                        {getCanvasTypeLabel(canvas.canvasType)}
+                      </p>
+                      <div className="flex items-center gap-4 text-muted-foreground text-xs">
+                        <span>Created {formatDate(canvas.createdAt)}</span>
+                        <span>Updated {formatDate(canvas.updatedAt)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Processing progress */}
-                {canvas.status === "processing" &&
-                  canvas.progress !== undefined && (
-                    <div className="mt-4">
-                      <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">
-                          Building presentation...
-                        </span>
-                        <span className="font-medium">{canvas.progress}%</span>
-                      </div>
-                      <Progress className="h-2" value={canvas.progress} />
-                    </div>
-                  )}
-
-                {/* Actions */}
-                {canvas.status !== "processing" && (
+                  {/* Actions */}
                   <div className="mt-4 flex items-center gap-2">
                     {canvas.status === "draft" ? (
                       <>
-                        <Button size="sm" variant="outline">
-                          Resume
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/canvas-flow/${canvas._id}`}>
+                            Resume
+                          </Link>
                         </Button>
                         <Button size="sm" variant="ghost">
                           Delete
@@ -132,11 +187,15 @@ export function Dashboard({ onStartWizard }: DashboardProps) {
                       </>
                     ) : (
                       <>
-                        <Button size="sm" variant="outline">
-                          View
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/canvas-flow/${canvas._id}/editor`}>
+                            View
+                          </Link>
                         </Button>
-                        <Button size="sm" variant="ghost">
-                          Edit
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href={`/canvas-flow/${canvas._id}/editor`}>
+                            Edit
+                          </Link>
                         </Button>
                         <Button size="sm" variant="ghost">
                           Export
@@ -144,10 +203,10 @@ export function Dashboard({ onStartWizard }: DashboardProps) {
                       </>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>

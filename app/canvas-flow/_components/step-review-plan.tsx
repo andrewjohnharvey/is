@@ -20,43 +20,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { WizardNavigation } from "@/components/wizard/wizard-navigation";
 import { cn } from "@/lib/utils";
-import type {
-  CanvasPlan,
-  ChatMessage,
-  ContextState,
-  PlanSection,
-} from "./mock-data";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { usePlanChat } from "../_hooks/use-plan-chat";
+import type { CanvasPlan, PlanSection } from "./mock-data";
+
+// Chat message type from usePlanChat hook
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: Date;
+}
 
 type StepReviewPlanProps = {
+  canvasId?: Id<"canvases">;
   plan: CanvasPlan | null;
-  chatMessages: ChatMessage[];
   isPlanGenerating: boolean;
-  isAiResponding: boolean;
-  context: ContextState;
   onBack: () => void;
   onContinue: () => void;
   onGeneratePlan: () => void;
-  onUpdateSection: (sectionId: string, updates: Partial<PlanSection>) => void;
   onRemoveSection: (sectionId: string) => void;
-  onAddSection: (title: string, purpose: string) => void;
-  onSendChatMessage: (content: string) => void;
   onRegeneratePlan: () => void;
 };
 
 export function StepReviewPlan({
+  canvasId,
   plan,
-  chatMessages,
   isPlanGenerating,
-  isAiResponding,
   onBack,
   onContinue,
   onGeneratePlan,
   onRemoveSection,
-  onSendChatMessage,
   onRegeneratePlan,
 }: StepReviewPlanProps) {
-  const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Use the chat hook only when canvasId is provided
+  // This is a workaround for the prototype mode which doesn't have a canvasId
+  const chatHook = usePlanChat({
+    canvasId: canvasId as Id<"canvases">,
+    plan,
+  });
+
+  // When canvasId is not provided, use fallback values
+  const messages = canvasId ? chatHook.messages : [];
+  const input = canvasId ? chatHook.input : "";
+  const handleInputChange = canvasId ? chatHook.handleInputChange : () => {};
+  const isLoading = canvasId ? chatHook.isLoading : false;
+  const sendMessage = canvasId ? chatHook.sendMessage : async () => {};
 
   // Auto-generate plan on mount if not already generated
   useEffect(() => {
@@ -65,15 +76,14 @@ export function StepReviewPlan({
     }
   }, [plan, isPlanGenerating, onGeneratePlan]);
 
-  // Auto-scroll chat
+  // Auto-scroll chat when messages change
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!chatInput.trim() || isAiResponding) return;
-    onSendChatMessage(chatInput);
-    setChatInput("");
+    if (!input.trim() || isLoading) return;
+    sendMessage(input);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -105,12 +115,12 @@ export function StepReviewPlan({
 
         {/* Right column: Chat interface */}
         <div className="flex w-[400px] flex-col bg-muted/30">
-          <ChatInterface
+          <StreamingChatInterface
             chatEndRef={chatEndRef}
-            chatInput={chatInput}
-            isAiResponding={isAiResponding}
-            messages={chatMessages}
-            onInputChange={setChatInput}
+            handleInputChange={handleInputChange}
+            input={input}
+            isLoading={isLoading}
+            messages={messages}
             onKeyDown={handleKeyDown}
             onSendMessage={handleSendMessage}
           />
@@ -397,25 +407,27 @@ function CalloutItem({ type, content }: { type: string; content: string }) {
   );
 }
 
-type ChatInterfaceProps = {
+type StreamingChatInterfaceProps = {
   messages: ChatMessage[];
-  chatInput: string;
-  isAiResponding: boolean;
-  onInputChange: (value: string) => void;
+  input: string;
+  isLoading: boolean;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
   onSendMessage: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   chatEndRef: React.RefObject<HTMLDivElement | null>;
 };
 
-function ChatInterface({
+function StreamingChatInterface({
   messages,
-  chatInput,
-  isAiResponding,
-  onInputChange,
+  input,
+  isLoading,
+  handleInputChange,
   onSendMessage,
   onKeyDown,
   chatEndRef,
-}: ChatInterfaceProps) {
+}: StreamingChatInterfaceProps) {
   return (
     <>
       {/* Chat header */}
@@ -429,10 +441,19 @@ function ChatInterface({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground text-sm">
+              <p>Ask me to add, remove, or modify sections in your plan.</p>
+              <p className="mt-2 text-xs">
+                Try: "Add a section about employee wellness" or "Remove the
+                claims trends section"
+              </p>
+            </div>
+          )}
           {messages.map((message) => (
-            <ChatMessageBubble key={message.id} message={message} />
+            <StreamingChatMessageBubble key={message.id} message={message} />
           ))}
-          {isAiResponding && (
+          {isLoading && (
             <div className="flex items-start gap-2">
               <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
                 <Sparkles className="size-3 text-primary" />
@@ -450,14 +471,14 @@ function ChatInterface({
       <div className="border-border border-t p-4">
         <div className="flex gap-2">
           <Input
-            disabled={isAiResponding}
-            onChange={(e) => onInputChange(e.target.value)}
+            disabled={isLoading}
+            onChange={handleInputChange}
             onKeyDown={onKeyDown}
             placeholder="Ask to add, remove, or modify sections..."
-            value={chatInput}
+            value={input}
           />
           <Button
-            disabled={!chatInput.trim() || isAiResponding}
+            disabled={!input.trim() || isLoading}
             onClick={onSendMessage}
             size="icon"
           >
@@ -469,11 +490,13 @@ function ChatInterface({
   );
 }
 
-type ChatMessageBubbleProps = {
+type StreamingChatMessageBubbleProps = {
   message: ChatMessage;
 };
 
-function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
+function StreamingChatMessageBubble({
+  message,
+}: StreamingChatMessageBubbleProps) {
   const isUser = message.role === "user";
 
   return (

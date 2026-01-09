@@ -191,3 +191,31 @@ export const exists = query({
     return analysis !== null;
   },
 });
+
+/**
+ * Get document tags (type and topics) for all documents in a canvas.
+ * Returns a map of documentId to { type, topics }.
+ */
+export const getDocumentTags = query({
+  args: { canvasId: v.id("canvases") },
+  handler: async (ctx, args) => {
+    const analysis = await ctx.db
+      .query("documentAnalysis")
+      .withIndex("by_canvas", (q) => q.eq("canvasId", args.canvasId))
+      .first();
+
+    if (!analysis) {
+      return {};
+    }
+
+    // Build a map of documentId -> { type, topics }
+    const tagMap: Record<string, { type: string; topics: string[] }> = {};
+    for (const doc of analysis.documents) {
+      tagMap[doc.documentId] = {
+        type: doc.primaryDomain,
+        topics: doc.topics,
+      };
+    }
+    return tagMap;
+  },
+});

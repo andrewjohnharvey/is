@@ -1,64 +1,75 @@
 "use client";
 
-import { useEffect } from "react";
-import { CanvasEditor } from "./_components/canvas-editor";
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { api } from "../../convex/_generated/api";
 import { Dashboard } from "./_components/dashboard";
-import { PROCESSING_PHASES } from "./_components/mock-data";
-import { ProcessingScreen } from "./_components/processing-screen";
-import { usePrototypeState } from "./_components/prototype-state";
-import { PrototypeWizard } from "./_components/prototype-wizard";
+import type { CanvasType } from "./_components/mock-data";
+
+// Map UI canvas types to Convex canvas types
+function mapCanvasType(
+  uiType: CanvasType
+): "pre_renewal" | "renewal" | "benchmarking" | "general" {
+  switch (uiType) {
+    case "pre-renewal":
+      return "pre_renewal";
+    case "renewal":
+      return "renewal";
+    case "benchmarking":
+      return "benchmarking";
+    case "cost-analysis":
+      return "general";
+    default:
+      return "general";
+  }
+}
 
 export default function CanvasFlowPage() {
-  const prototype = usePrototypeState();
-  const { state } = prototype;
+  const router = useRouter();
+  const [isCreatingCanvas, setIsCreatingCanvas] = useState(false);
 
-  // Processing animation effect
-  useEffect(() => {
-    if (state.screen !== "processing") return;
+  // Convex hooks for canvas creation
+  const createDraft = useMutation(api.canvases.createDraft);
 
-    const interval = setInterval(() => {
-      const newProgress = state.processingProgress + 2;
-      const newPhaseIndex = Math.min(
-        Math.floor(newProgress / (100 / PROCESSING_PHASES.length)),
-        PROCESSING_PHASES.length - 1
-      );
+  // Get first available client for prototype (in production, this would come from context/URL)
+  const clientsResult = useQuery(api.clients.list, {
+    paginationOpts: { numItems: 1, cursor: null },
+  });
+  const clientId = clientsResult?.page[0]?._id;
 
-      if (newProgress >= 100) {
-        clearInterval(interval);
-        // Brief delay before showing editor
-        setTimeout(() => {
-          prototype.showEditor();
-        }, 500);
+  // Handler for creating a new canvas and navigating to the wizard
+  const handleStartWizard = useCallback(
+    async (canvasType: CanvasType) => {
+      if (!clientId) {
+        console.error("No client available");
         return;
       }
 
-      prototype.updateProcessingProgress(newProgress, newPhaseIndex);
-    }, 150);
+      setIsCreatingCanvas(true);
+      try {
+        const canvasId = await createDraft({
+          clientId,
+          name: `${canvasType === "pre-renewal" ? "Pre-Renewal" : canvasType === "renewal" ? "Renewal" : canvasType === "benchmarking" ? "Benchmarking" : "Analysis"} ${new Date().toLocaleDateString()}`,
+          canvasType: mapCanvasType(canvasType),
+        });
 
-    return () => clearInterval(interval);
-  }, [state.screen, state.processingProgress, prototype]);
+        // Navigate to the first wizard step with the new canvas ID
+        router.push(`/canvas-flow/${canvasId}/document-upload`);
+      } catch (error) {
+        console.error("Failed to create canvas:", error);
+      } finally {
+        setIsCreatingCanvas(false);
+      }
+    },
+    [clientId, createDraft, router]
+  );
 
-  // Render appropriate screen
-  switch (state.screen) {
-    case "dashboard":
-      return <Dashboard onStartWizard={prototype.startWizard} />;
-
-    case "wizard":
-      return <PrototypeWizard prototype={prototype} />;
-
-    case "processing":
-      return (
-        <ProcessingScreen
-          phaseIndex={state.processingPhaseIndex}
-          phases={PROCESSING_PHASES}
-          progress={state.processingProgress}
-        />
-      );
-
-    case "editor":
-      return <CanvasEditor onExit={prototype.goToDashboard} />;
-
-    default:
-      return <Dashboard onStartWizard={prototype.startWizard} />;
-  }
+  return (
+    <Dashboard
+      clientId={clientId}
+      isCreatingCanvas={isCreatingCanvas}
+      onStartWizard={handleStartWizard}
+    />
+  );
 }

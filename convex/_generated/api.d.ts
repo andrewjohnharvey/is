@@ -19,6 +19,8 @@ import type * as documentAnalysisHelpers from "../documentAnalysisHelpers.js";
 import type * as documentProcessing from "../documentProcessing.js";
 import type * as documentProcessingHelpers from "../documentProcessingHelpers.js";
 import type * as documents from "../documents.js";
+import type * as planChat from "../planChat.js";
+import type * as planChatMessages from "../planChatMessages.js";
 import type * as rag from "../rag.js";
 import type * as search from "../search.js";
 import type * as searchHelpers from "../searchHelpers.js";
@@ -43,6 +45,8 @@ declare const fullApi: ApiFromModules<{
   documentProcessing: typeof documentProcessing;
   documentProcessingHelpers: typeof documentProcessingHelpers;
   documents: typeof documents;
+  planChat: typeof planChat;
+  planChatMessages: typeof planChatMessages;
   rag: typeof rag;
   search: typeof search;
   searchHelpers: typeof searchHelpers;

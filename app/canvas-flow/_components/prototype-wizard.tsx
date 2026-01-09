@@ -45,10 +45,9 @@ function WizardStepContent({ prototype }: WizardStepContentProps) {
     case "upload-documents":
       return (
         <StepUploadDocuments
-          documents={state.documents}
-          onAddMockDocuments={prototype.addMockDocuments}
+          canvasId={state.canvasId}
+          clientId={state.clientId}
           onContinue={prototype.goToNextStep}
-          onRemoveDocument={prototype.removeDocument}
         />
       );
 
@@ -66,18 +65,12 @@ function WizardStepContent({ prototype }: WizardStepContentProps) {
     case "review-plan":
       return (
         <StepReviewPlan
-          chatMessages={state.chatMessages}
-          context={state.context}
-          isAiResponding={state.isAiResponding}
           isPlanGenerating={state.isPlanGenerating}
-          onAddSection={prototype.addPlanSection}
           onBack={prototype.goToPreviousStep}
           onContinue={prototype.startProcessing}
           onGeneratePlan={prototype.generatePlan}
           onRegeneratePlan={prototype.regeneratePlan}
           onRemoveSection={prototype.removePlanSection}
-          onSendChatMessage={prototype.addChatMessage}
-          onUpdateSection={prototype.updatePlanSection}
           plan={state.plan}
         />
       );

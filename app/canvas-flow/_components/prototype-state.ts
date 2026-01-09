@@ -46,11 +46,18 @@ function findSectionByKeywords(
   });
 }
 
+// Convex ID type alias for convenience
+type CanvasId = string;
+type ClientId = string;
+
 // Prototype state interface
 export interface PrototypeState {
   screen: ScreenType;
   wizardStep: WizardStepId;
   canvasType: CanvasType | null;
+  // Convex IDs for real data integration
+  canvasId: CanvasId | null;
+  clientId: ClientId | null;
   documents: UploadedDocument[];
   context: ContextState;
   processingProgress: number;
@@ -67,6 +74,8 @@ const createInitialState = (): PrototypeState => ({
   screen: "dashboard",
   wizardStep: "upload-documents",
   canvasType: null,
+  canvasId: null,
+  clientId: null,
   documents: [],
   context: {
     clientName: MOCK_CLIENT.name,
@@ -98,6 +107,11 @@ export interface UsePrototypeStateReturn {
   // Screen navigation
   goToDashboard: () => void;
   startWizard: (canvasType: CanvasType) => void;
+  startWizardWithCanvas: (
+    canvasType: CanvasType,
+    canvasId: string,
+    clientId: string
+  ) => void;
   startProcessing: () => void;
   showEditor: () => void;
 
@@ -160,6 +174,35 @@ export function usePrototypeState(): UsePrototypeStateReturn {
       },
     }));
   }, []);
+
+  const startWizardWithCanvas = useCallback(
+    (canvasType: CanvasType, canvasId: string, clientId: string) => {
+      setState((prev) => ({
+        ...prev,
+        screen: "wizard",
+        wizardStep: "upload-documents",
+        canvasType,
+        canvasId,
+        clientId,
+        documents: [],
+        context: {
+          clientName: MOCK_CLIENT.name,
+          renewalPeriod: "1/1/2022",
+          expectedIncreasePercent: null,
+          budgetComparison: null,
+          nationalAveragePercent: null,
+          regionalAveragePercent: null,
+          industryAveragePercent: null,
+          audience: null,
+          priorities: [],
+          presentationDepth: 50,
+          strategyIdeas: "",
+          additionalContext: "",
+        },
+      }));
+    },
+    []
+  );
 
   const startProcessing = useCallback(() => {
     setState((prev) => ({
@@ -568,6 +611,7 @@ export function usePrototypeState(): UsePrototypeStateReturn {
     state,
     goToDashboard,
     startWizard,
+    startWizardWithCanvas,
     startProcessing,
     showEditor,
     goToNextStep,

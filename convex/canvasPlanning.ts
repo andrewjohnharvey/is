@@ -37,7 +37,7 @@ interface StoredDocumentAnalysis {
 }
 
 /**
- * Build prompt for canvas planning
+ * Build prompt for canvas planning (legacy - used when no composed prompt provided)
  */
 function buildPlanningPrompt(
   analysis: StoredDocumentAnalysis,
@@ -76,6 +76,33 @@ Create sections that make sense for THIS specific content.`;
 }
 
 /**
+ * Build enhanced prompt by merging composed prompt with document analysis
+ * Used when frontend provides a pre-built prompt from markdown templates
+ */
+function buildEnhancedPrompt(
+  analysis: StoredDocumentAnalysis,
+  composedPrompt: string
+): string {
+  return `${composedPrompt}
+
+## Document Analysis Data
+The following is the structured analysis of the uploaded documents:
+
+${JSON.stringify(analysis, null, 2)}
+
+## Guidelines
+- Generate 3-10 sections based on content richness
+- Section titles should be specific and descriptive (not generic like "Overview")
+- Each section should have a clear purpose
+- Don't force visualizations - only suggest them when data supports it
+- Include an executive summary if there's enough content
+- Be creative - if the data supports a unique insight, create a section for it
+
+## Section IDs
+Generate unique IDs for each section using format "section-{number}" (e.g., "section-1", "section-2")`;
+}
+
+/**
  * Plan a generative canvas based on document analysis
  * This is the second step in the generative canvas workflow
  */
@@ -83,6 +110,7 @@ export const planCanvas = action({
   args: {
     canvasId: v.id("canvases"),
     consultantGuidance: v.optional(v.string()),
+    composedPrompt: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -121,11 +149,16 @@ export const planCanvas = action({
         currentStep: "Generating canvas plan with AI...",
       });
 
-      // 4. Generate canvas plan using AI SDK
+      // 4. Build prompt - use composed prompt if provided, otherwise fall back to legacy
+      const prompt = args.composedPrompt
+        ? buildEnhancedPrompt(analysis, args.composedPrompt)
+        : buildPlanningPrompt(analysis, args.consultantGuidance);
+
+      // 5. Generate canvas plan using AI SDK
       const { object: plan } = await generateObject({
         model: gpt51Mini,
         schema: GenerativeCanvasPlanSchema,
-        prompt: buildPlanningPrompt(analysis, args.consultantGuidance),
+        prompt,
       });
 
       // 5. Update progress

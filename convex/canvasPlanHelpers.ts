@@ -286,6 +286,98 @@ export const removeSection = mutation({
 });
 
 /**
+ * Update a specific section in the plan
+ */
+export const updateSection = mutation({
+  args: {
+    canvasId: v.id("canvases"),
+    sectionId: v.string(),
+    updates: v.object({
+      title: v.optional(v.string()),
+      purpose: v.optional(v.string()),
+      keyQuestions: v.optional(v.array(v.string())),
+      suggestedContent: v.optional(
+        v.object({
+          narrativePoints: v.optional(v.array(v.string())),
+          visualizations: v.optional(
+            v.array(
+              v.object({
+                type: v.string(),
+                title: v.string(),
+                dataDescription: v.string(),
+                rationale: v.string(),
+              })
+            )
+          ),
+          callouts: v.optional(
+            v.array(
+              v.object({
+                type: v.string(),
+                content: v.string(),
+              })
+            )
+          ),
+        })
+      ),
+      confidence: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const plan = await ctx.db
+      .query("canvasPlans")
+      .withIndex("by_canvas", (q) => q.eq("canvasId", args.canvasId))
+      .first();
+
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
+
+    const updatedSections = plan.sections.map((section) => {
+      if (section.id !== args.sectionId) {
+        return section;
+      }
+
+      // Merge updates into section
+      const updatedSection = { ...section };
+
+      if (args.updates.title !== undefined) {
+        updatedSection.title = args.updates.title;
+      }
+      if (args.updates.purpose !== undefined) {
+        updatedSection.purpose = args.updates.purpose;
+      }
+      if (args.updates.keyQuestions !== undefined) {
+        updatedSection.keyQuestions = args.updates.keyQuestions;
+      }
+      if (args.updates.confidence !== undefined) {
+        updatedSection.confidence = args.updates.confidence;
+      }
+      if (args.updates.suggestedContent !== undefined) {
+        updatedSection.suggestedContent = {
+          ...updatedSection.suggestedContent,
+          ...(args.updates.suggestedContent.narrativePoints !== undefined && {
+            narrativePoints: args.updates.suggestedContent.narrativePoints,
+          }),
+          ...(args.updates.suggestedContent.visualizations !== undefined && {
+            visualizations: args.updates.suggestedContent.visualizations,
+          }),
+          ...(args.updates.suggestedContent.callouts !== undefined && {
+            callouts: args.updates.suggestedContent.callouts,
+          }),
+        };
+      }
+
+      return updatedSection;
+    });
+
+    await ctx.db.patch(plan._id, {
+      sections: updatedSections,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
  * Reorder sections in the plan
  */
 export const reorderSections = mutation({
